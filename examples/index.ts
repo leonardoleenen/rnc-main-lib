@@ -4,10 +4,10 @@ export const empresas = {
     ejercicios: [{
       fechaInicio:'',
       fechaCierre:'',
-      activoCorriente:0,
-      activoNoCorriente:0,
-      pasivoCorriente: 0,
-      pasivoNoCorriente:0,
+      activoCorriente:5390431055,
+      activoNoCorriente:2788269305,
+      pasivoCorriente: 3515716141,
+      pasivoNoCorriente:2008117798,
       ventasEjercicio:0,
       capitalSuscripto:0
     }] as Array<Ejercicio>

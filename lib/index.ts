@@ -6,6 +6,12 @@ export const sum = (a, b) => {
   return a+b
 } 
 
+export const calcularIndicesPorEjercicio = (ejercicio: Ejercicio) => {
+  return {
+    
+  }
+} 
+
 export class CalculadoraCapacidad {
 
   private obras 
