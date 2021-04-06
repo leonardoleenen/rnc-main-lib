@@ -31,6 +31,10 @@
     "**/*.ts",
     "**/*.tsx"],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "./dist",
+    "./jest.config.ts",
+    "./examples",
+    "./tasks"
   ]
 }

@@ -20,13 +20,13 @@ import _ from 'lodash'
       .map( obra => {
         return  calculadora.getCompromiso(obra) +  calculadora.getIndicadorMultiplicador(obra) 
       })
-      .reduce( (acc,val) =>  acc += val)
+      .reduce( (acc,val) =>  acc += val,0)
       
   //console.log(getTramiteFromState().ddjjObras[0])
   console.log({
-    capacidadEjecucion,
-    capacidadFinanciera: capacidadFinanciera !== 0 ? capacidadFinanciera - capacidadEjecucion : capacidadEjecucion,
-    evidencia: calculadora.getEvidencia()
+    //capacidadEjecucion,
+    //capacidadFinanciera:  capacidadFinanciera - capacidadEjecucion,
+    evidencia: calculadora.getEvidencia().obrasInvolucradasEnElCalculoDeEjecucion
   })
 
 

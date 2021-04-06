@@ -40,6 +40,7 @@ export class CalculadoraCapacidad {
     multiplicadorPorAntiguedad: number,
     promedioDeLasMejoresTres: number,
     tresMejoresPeriodos: [],
+    obrasInvolucradasEnElCalculoDeEjecucion: [],
     indicesEconomicos: {
       liquidez: number,
       solvencia: number,
@@ -62,6 +63,7 @@ export class CalculadoraCapacidad {
     this.evidencia = {
       multiplicadorPorAntiguedad: 0,
       promedioDeLasMejoresTres: 0,
+      obrasInvolucradasEnElCalculoDeEjecucion: [],
       tresMejoresPeriodos: [],
 
       obrasCandidatas: [],
@@ -142,10 +144,11 @@ export class CalculadoraCapacidad {
     this.indices = await getIndices()
   }
 
-  getIndice(periodo: string) {
+  getIndice(periodoRaw: string) {
 
-    const mes = periodo.substring(0, periodo.length - 4)
-    const anio = parseInt(periodo.substring(periodo.length - 4,), 10)
+    const mes = parseInt(periodoRaw.substring(0, periodoRaw.length - 4),10).toString()
+    const anio = parseInt(periodoRaw.substring(periodoRaw.length - 4,), 10)
+    const periodo = `${mes}${anio}`
 
     const actual = _.head(this.indices.filter(i => i.mesanio === periodo))
     const anterior = _.head(this.indices.filter(i => i.mesanio === mes + (anio - 1).toString()))
@@ -165,7 +168,7 @@ export class CalculadoraCapacidad {
       }
     }
     const list = this._empresa.ddjjObras
-      .reduce((acc, { certificaciones, denominacion }) => [...acc, ...certificaciones], [])
+      .reduce((acc, { certificaciones, id }) => [...acc, ...certificaciones], [])
       .map(parseCertificacion)
 
     const sortedList = _.sortBy(list, e => e.time).reduce((acc, { id, periodo, monto }) => ({
@@ -173,12 +176,15 @@ export class CalculadoraCapacidad {
       [periodo]: {
         id: periodo,
         periodo,
-        monto: list.filter(e => e.periodo === periodo).map(e => e.monto).reduce((a, v) => a += v)
+        indice:this.getIndice(periodo),
+        denominacion: this._empresa.ddjjObras.filter( o =>  !_.isEmpty(o.certificaciones.filter( c => c.codigo === id)))[0].denominacion,
+        monto: list.filter(e => e.periodo === periodo).map(e => e.monto).reduce((a, v) => a += v),
+        montoAjustado: list.filter(e => e.periodo === periodo).map(e => e.monto).reduce((a, v) => a += v) * this.getIndice(periodo)
       }
     }), {})
 
     this.value = Object.keys(sortedList).map(key => sortedList[key])
-
+    this.evidencia.obrasInvolucradasEnElCalculoDeEjecucion = this.value
     return this
 
   }
@@ -258,9 +264,9 @@ export class CalculadoraCapacidad {
           value: valorAjustado,
           actualizarPorAntiguedad: () => {
             const factorAntiguedad = this.getAntiguedadAnios() * 0.04
-            this.evidencia.multiplicadorPorAntiguedad = factorAntiguedad
+            this.evidencia.multiplicadorPorAntiguedad = factorAntiguedad > 0.8 ? 0.8 : factorAntiguedad
             return {
-              value: factorAntiguedad > 0.8 ? 0.8 : valorAjustado * factorAntiguedad
+              value: factorAntiguedad > 0.8 ? valorAjustado * 0.8 : valorAjustado * factorAntiguedad
             }
           }
         }

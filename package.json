@@ -1,10 +1,11 @@
 {
   "name": "rnc-main-lib",
-  "version": "1.0.0",
+  "version": "1.0.5",
   "description": "Librerias helpers para el registro nacional de constructores de la Republica Argentina ",
   "scripts": {
     "build": "tsc",
     "watch": "tsc --watch",
+    "publish": " tsc && npm publish",
     "test": "jest",
     "task:extrar-evidencia-capacidad-ejecucion": "npx ts-node ./tasks/extraer_evidencia_capacidad_ejecucion.ts"
   },
