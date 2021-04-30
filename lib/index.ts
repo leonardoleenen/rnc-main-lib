@@ -1,13 +1,9 @@
 import moment from 'moment'
 import _ from 'lodash'
-var fs = require('fs')
+
 const path = require('path')
 
-export const getTramiteFromState = () => {
 
-  var file = JSON.parse(fs.readFileSync(path.join(__dirname, '..', '/examples/state.data'), 'utf8'));
-  return JSON.parse(file.payload)[0].tramite
-}
 
 export const calcularIndicesPorEjercicio = (ejercicio: Ejercicio) => {
   const pasivoTotal = ejercicio.pasivoNoCorriente + ejercicio.pasivoCorriente
@@ -51,7 +47,7 @@ export class CalculadoraCapacidad {
       id: string,
       denominacion: string
     }>,
-    
+
 
   }
 
@@ -105,12 +101,20 @@ export class CalculadoraCapacidad {
   }
 
   private getAntiguedadAnios() {
+
     let fechaInscripcion = null
     if (this._empresa.personeria === 'PF') {
       fechaInscripcion = moment(this._empresa.matriculaComerciante.fecha, 'DD/MM/YYYY').toDate()
       return moment().diff(fechaInscripcion, 'years')
     }
-    fechaInscripcion = moment(this._empresa.datosSocietarios.sociedadAnonima.contrato.fecha, 'DD/MM/YYYY').toDate()
+
+    if (this._empresa.personeria === 'PJESP') {
+      fechaInscripcion = this._empresa.datosSocietarios.PJESP.modifcicacionObjeto.fecha.length === 10 ? moment(this._empresa.datosSocietarios.PJESP.modifcicacionObjeto.fecha, 'DD/MM/YYYY').toDate() : moment(this._empresa.datosSocietarios.PJESP.modifcicacionObjeto.fecha).toDate()
+      // console.log(fechaInscripcion)
+      return moment().diff(fechaInscripcion, 'years')
+    }
+
+    fechaInscripcion = moment(this._empresa.datosSocietarios.sociedadAnonima.modificacion.fecha, 'DD/MM/YYYY').toDate()
     return moment().diff(fechaInscripcion, 'years')
   }
 
@@ -145,39 +149,80 @@ export class CalculadoraCapacidad {
   }
 
   getIndice(periodoRaw: string) {
-
-    const mes = parseInt(periodoRaw.substring(0, periodoRaw.length - 4),10).toString()
-    const anio = parseInt(periodoRaw.substring(periodoRaw.length - 4,), 10)
-    const periodo = `${mes}${anio}`
-
-    const actual = _.head(this.indices.filter(i => i.mesanio === periodo))
-    const anterior = _.head(this.indices.filter(i => i.mesanio === mes + (anio - 1).toString()))
+    const actual = _.last(this.indices)
+    const anterior = _.head(this.indices.filter(i => i.mesanio === periodoRaw))
     if (!actual || !anterior)
       return 1
-
     return parseFloat(actual.factor) / parseFloat(anterior.factor)
   }
 
   getMontoCertificacionesPorPeriodo() {
     const parseCertificacion = (cert) => {
+
+      // const obra = this._empresa.ddjjObras.filter( o=>  !_.isEmpty(o.certificaciones.filter(c => c.codigo === cert.codigo)))[0]
+
+      const tipoContratacion = this._empresa.ddjjObras.filter(o => !_.isEmpty(o.certificaciones.filter(c => c.codigo === cert.codigo)))[0].datosObra[0].tipoContratacion
+      const participacionUTE = this._empresa.ddjjObras.filter(o => !_.isEmpty(o.certificaciones.filter(c => c.codigo === cert.codigo)))[0].participacionUTE
+
+      let montoCalculado = cert.monto
+
+
+
+      if (participacionUTE) {
+        montoCalculado = montoCalculado * (parseFloat(participacionUTE) / 100)
+        //console.log(parseFloat(participacionUTE) / 100)
+      }
+
+
+      if (tipoContratacion === 'Privada')
+        montoCalculado = montoCalculado * 0.75
+
+      if (tipoContratacion === 'SubPublica')
+        montoCalculado = montoCalculado * 0.50
+
+      if (tipoContratacion === 'SubPrivada')
+        montoCalculado = montoCalculado * 0.25
+
       return {
         id: cert.codigo,
+        tipoContratacion,
+        participacionUTE,
         periodo: moment(cert.periodo, 'DD/MM/YYYY').format('MMYYYY'),
         time: moment(cert.periodo, 'DD/MM/YYYY').valueOf(),
-        monto: cert.monto
+        montoBruto: cert.monto,
+        monto: montoCalculado
       }
     }
-    const list = this._empresa.ddjjObras
-      .reduce((acc, { certificaciones, id }) => [...acc, ...certificaciones], [])
+    const listCruda = this._empresa.ddjjObras
+      .reduce((acc, { certificaciones, id, datosObra }) => [...acc, ...certificaciones], [])
       .map(parseCertificacion)
+      .filter(o => moment(this.getUltimoEjercicio().fechaCierre, 'DD/MM/YYYY').toDate().getTime() >= o.time)
+
+
+
+    //console.log(listCruda)
+    const list = []
+    for (let e of this._empresa.ejercicios.filter(ej => moment().diff(moment(ej.fechaCierre, 'DD/MM/YYYY'), 'years') <= 10)) {
+      const montoAccumulado = listCruda.filter(cert => cert.time >= moment(e.fechaInicio, 'DD/MM/YYYY').valueOf() && cert.time <= moment(e.fechaCierre, 'DD/MM/YYYY').valueOf())
+        .reduce((acc, val) => acc += val.monto, 0)
+
+      //console.log(listCruda.filter( cert => cert.time >= moment(e.fechaInicio,'DD/MM/YYYY').valueOf() && cert.time <=  moment(e.fechaCierre,'DD/MM/YYYY').valueOf()))
+
+      list.push({
+        periodo: moment(e.fechaCierre, 'DD/MM/YYYY').format('MMYYYY'),
+        time: moment(e.fechaCierre, 'DD/MM/YYYY').valueOf(),
+        monto: montoAccumulado
+      })
+    }
+
+
 
     const sortedList = _.sortBy(list, e => e.time).reduce((acc, { id, periodo, monto }) => ({
       ...acc,
       [periodo]: {
         id: periodo,
         periodo,
-        indice:this.getIndice(periodo),
-        denominacion: this._empresa.ddjjObras.filter( o =>  !_.isEmpty(o.certificaciones.filter( c => c.codigo === id)))[0].denominacion,
+        indice: this.getIndice(periodo),
         monto: list.filter(e => e.periodo === periodo).map(e => e.monto).reduce((a, v) => a += v),
         montoAjustado: list.filter(e => e.periodo === periodo).map(e => e.monto).reduce((a, v) => a += v) * this.getIndice(periodo)
       }
@@ -215,30 +260,37 @@ export class CalculadoraCapacidad {
   aplicarPromedioLineal() {
     let promedio = 0
 
+    const ultimoEjercicioIdx = _.last(this._empresa.ejercicios.map(e => moment(e.fechaCierre, 'DD/MM/YYYY').toDate().getTime()).sort())
+    const ultimoEjercicio = this._empresa.ejercicios.filter(e => moment(e.fechaCierre, 'DD/MM/YYYY').toDate().getTime() === ultimoEjercicioIdx)
+    let capitalSuscripto = _.last(ultimoEjercicio).capitalSuscripto
+
     if (!_.isEmpty(this.value))
       promedio = this.value.map(e => e.monto).reduce((acc, val) => acc += val) / this.value.length
+
 
     this.evidencia.promedioDeLasMejoresTres = promedio
 
     return {
       value: promedio,
       aplicarIndicesEconomicos: () => {
-        const liquidez = this.getIndiceLiquidezCorriente(this._empresa.ejercicios
+
+
+        const liquidez = this.getIndiceLiquidezCorriente(ultimoEjercicio
           .map(e => this.calcularIndicesPorEjercicio(e))
           .map(i => i.liquidez)
           .reduce((acc, val) => acc += val))
 
-        const capitalPropio = this.getIndiceCapitalPropio(this._empresa.ejercicios
+        const capitalPropio = this.getIndiceCapitalPropio(ultimoEjercicio
           .map(e => this.calcularIndicesPorEjercicio(e))
           .map(i => i.capitalPropio)
           .reduce((acc, val) => acc += val))
 
-        const endeudamiento = this.getInidiceEndeudamiento(this._empresa.ejercicios
+        const endeudamiento = this.getInidiceEndeudamiento(ultimoEjercicio
           .map(e => this.calcularIndicesPorEjercicio(e))
           .map(i => i.endeudamiento)
           .reduce((acc, val) => acc += val))
 
-        const solvencia = this.getIndiceSolvencia(this._empresa.ejercicios
+        const solvencia = this.getIndiceSolvencia(ultimoEjercicio
           .map(e => this.calcularIndicesPorEjercicio(e))
           .map(i => i.solvencia)
           .reduce((acc, val) => acc += val))
@@ -258,23 +310,24 @@ export class CalculadoraCapacidad {
           }
         }
 
-        const valorAjustado = promedio * indiceEconomico
+        const valorAjustado = promedio !== 0 ? promedio * indiceEconomico : indiceEconomico
 
-        return {
-          value: valorAjustado,
-          actualizarPorAntiguedad: () => {
-            const factorAntiguedad = this.getAntiguedadAnios() * 0.04
-            this.evidencia.multiplicadorPorAntiguedad = factorAntiguedad > 0.8 ? 0.8 : factorAntiguedad
-            return {
-              value: factorAntiguedad > 0.8 ? valorAjustado * 0.8 : valorAjustado * factorAntiguedad
-            }
-          }
-        }
+
+        const factorAntiguedad = this.getAntiguedadAnios() * 0.04
+        this.evidencia.multiplicadorPorAntiguedad = factorAntiguedad > 0.8 ? 0.8 : factorAntiguedad
+        this.value = promedio !== 0 ? (indiceEconomico + factorAntiguedad) * promedio : capitalSuscripto * (indiceEconomico + factorAntiguedad)
+
+        return this.value
       }
     }
   }
 
 
+
+  getUltimoEjercicio() {
+    const ultimoEjercicioIdx = _.last(this._empresa.ejercicios.map(e => moment(e.fechaCierre, 'DD/MM/YYYY').toDate().getTime()).sort())
+    return this._empresa.ejercicios.filter(e => moment(e.fechaCierre, 'DD/MM/YYYY').toDate().getTime() === ultimoEjercicioIdx)[0]
+  }
 
   private getMontosObraGross = (o: DDJJObra) => {
     return {
@@ -286,12 +339,12 @@ export class CalculadoraCapacidad {
   }
 
   private getMontosObraAjustado = (o: DDJJObra) => {
-    const value =  {
+    const value = {
       denominacion: o.denominacion,
       tipo: o.datosObra[0].tipoContratacion,
       montoInicial: o.montoInicial,
       montoTotalRedeterminaciones: o.redeterminaciones
-        .map(r => r.monto * this.getIndice(moment(r.fecha, 'DD/MM/YYYY').format('MYYYY')))
+        .map(r => r.monto * this.getIndice(moment(o.datosObra[0].fechaAdjudicacion, 'DD/MM/YYYY').format('MYYYY')))
         .reduce((acc, val) => acc += val, 0),
       montoCertificaciones: o.certificaciones
         .map(r => r.monto * this.getIndice(moment(r.periodo, 'DD/MM/YYYY').format('MYYYY')))
@@ -301,11 +354,11 @@ export class CalculadoraCapacidad {
         .reduce((acc, val) => acc += val, 0),
     }
 
-    if (value.tipo!=='Publica'){
+    if (value.tipo !== 'Publica') {
       value.montoInicial = value.montoInicial / 2
       value.montoAmpliaciones = value.montoAmpliaciones / 2
-      value.montoCertificaciones = value.montoCertificaciones/ 2 
-      value.montoTotalRedeterminaciones  = value.montoTotalRedeterminaciones /2
+      value.montoCertificaciones = value.montoCertificaciones / 2
+      value.montoTotalRedeterminaciones = value.montoTotalRedeterminaciones / 2
     }
 
     return value
@@ -326,7 +379,7 @@ export class CalculadoraCapacidad {
           ...this.getMontosObraAjustado(o)
         },
         plazoContrato: o.plazoPorContrato,
-        prorroga:o.prorroga,
+        prorroga: o.prorroga,
         fechaAdjudicacion: o.datosObra[0].fechaAdjudicacion,
         fechaInicio: o.datosObra[0].fechaInicio
       }
@@ -336,18 +389,62 @@ export class CalculadoraCapacidad {
   }
 
   getIndicadorMultiplicador(obra: DDJJObra) {
-    const {montoInicial,montoAmpliaciones,montoCertificaciones,montoTotalRedeterminaciones} = this.getMontosObraAjustado(obra)
+    const { montoInicial, montoAmpliaciones, montoCertificaciones, montoTotalRedeterminaciones } = this.getMontosObraAjustado(obra)
     const saldo = (montoInicial + montoAmpliaciones + montoTotalRedeterminaciones) - montoCertificaciones
     const montoVigente = montoInicial + montoTotalRedeterminaciones + montoAmpliaciones
     return (saldo / montoVigente) * (obra.plazoPorContrato + obra.prorroga)
   }
 
-  getCompromiso(obra: DDJJObra) {
-    const {montoInicial,montoAmpliaciones,montoCertificaciones,montoTotalRedeterminaciones} = this.getMontosObraAjustado(obra)
-    return montoInicial + montoTotalRedeterminaciones + montoAmpliaciones
+
+  private calcularSaldoObra(obra: DDJJObra) {
+
+    const sumaRedeterminaciones = obra.redeterminaciones && obra.redeterminaciones.length !== 0 ? obra.redeterminaciones.map(r => parseInt(r.monto.toFixed(2), 10)).reduce((acc, val) => acc += val, 0) : 0
+    const sumaAmpliaciones = obra.ampliaciones && obra.ampliaciones.length !== 0 ? obra.ampliaciones.map(a => parseInt(a.monto.toFixed(2), 10)).reduce((acc, val) => acc += val, 0) : 0
+    const sumaCertifcaciones = obra.certificaciones && obra.certificaciones.length !== 0 ? obra.certificaciones.map(c => c.monto).reduce((acc, val) => acc += val, 0) : 0
+
+    const saldo = (obra.montoInicial + sumaRedeterminaciones + sumaAmpliaciones) - sumaCertifcaciones
+
+    return saldo < 10 ? 0 : saldo
+
   }
 
- 
+  getCompromiso(obra: DDJJObra) {
+
+    const saldoObra = this.calcularSaldoObra(obra)
+
+    const sumaRedeterminaciones = obra.redeterminaciones && obra.redeterminaciones.length !== 0 ? obra.redeterminaciones.map(r => parseInt(r.monto.toFixed(2), 10)).reduce((acc, val) => acc += val, 0) : 0
+    const sumaAmpliaciones = obra.ampliaciones && obra.ampliaciones.length !== 0 ? obra.ampliaciones.map(a => parseInt(a.monto.toFixed(2), 10)).reduce((acc, val) => acc += val, 0) : 0
+    const sumaCertifcaciones = obra.certificaciones && obra.certificaciones.length !== 0 ? obra.certificaciones.map(c => c.monto).reduce((acc, val) => acc += val, 0) : 0
+
+
+    const montoVigente  = obra.montoInicial + sumaAmpliaciones + sumaRedeterminaciones
+    const plazoTotalMeses = obra.plazoPorContrato + obra.prorrogaNueva.reduce( (acc,val) => acc+=val.prorrogaMeses,0)
+
+    let montoCalculado =  (saldoObra / montoVigente) * plazoTotalMeses > 12  ? (saldoObra / ((saldoObra / montoVigente) * plazoTotalMeses)) * 12 : saldoObra
+    
+    if (obra.participacionUTE) {
+      montoCalculado = montoCalculado * (parseFloat(obra.participacionUTE) / 100)
+      //console.log(parseFloat(participacionUTE) / 100)
+    }
+
+
+    if (obra.datosObra[0].tipoContratacion === 'Privada')
+      montoCalculado = montoCalculado * 0.75
+
+    if (obra.datosObra[0].tipoContratacion === 'SubPublica')
+      montoCalculado = montoCalculado * 0.50
+
+    if (obra.datosObra[0].tipoContratacion === 'SubPrivada')
+      montoCalculado = montoCalculado * 0.25
+
+    const indiceInflacion  = this.getIndice(moment(obra.datosObra[0].fechaAdjudicacion,'DD/MM/YYYY').format('MYYYY'))
+    // console.log(indiceInflacion, moment(obra.datosObra[0].fechaAdjudicacion,'DD/MM/YYYY').format('MYYYY'))
+    
+    montoCalculado = montoCalculado * indiceInflacion
+    return montoCalculado
+  }
+
+
 
 
 

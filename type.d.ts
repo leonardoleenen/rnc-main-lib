@@ -157,178 +157,214 @@ type Ejercicio = {
   }
 
 
-type TramiteAlta = {
-  _id?: string,
-  inscripcionAFIPConstancia: Array<Archivo>
-  revisiones?: Array<RevisionTramite>
-  id: string
-  createdAt?: Date
-  razonSocial: string
-  nombreTitular: string
-  apellidoTitular: string
-  esCasadoTitular: boolean
-  nombreConyuge: string
-  apellidoConyuge: string
-  tipoDocumentoConyuge: string
-  documentoConyugue: string
-  personeria: string
-  tipoEmpresa: []
-  emailInstitucional: string
-  cuit: string
-  nroLegajo: string
-  asignadoA?: Usuario
-  apoderados: Array<Apoderado>
-  statusObs?: Array<{
-    attribute: string
-    obs: string
-  }>
-  categoria: 'PRE INSCRIPTO' | 'INSCRIPTO' | 'DESACTUALIZADO'
-  status: "BORRADOR" | "OBSERVADO" | "VERIFICADO" | "PENDIENTE DE REVISION" | "A SUPERVISAR" | "SUBSANADO" | "PENDIENTE DE APROBACION"
-  propietario: Usuario
-  certificadoFiscal: Archivo
-  email: string
-  ieric: string
-  vtoIeric: string
-  archivoIERIC: Array<Archivo>
-  domicilioReal: string
-  domicilioLegal: string
-  telefono: string
-  telefonoAlternativo: string
-  constanciaDomicilioLegal: Array<Archivo>
-  registroPublicoDeComercio: string
-  igj: string
-  rubroConstruccion: {
-    lugar: string,
-    fecha: string
-    datos: string
-  }
-  inversionesPermanentes: Array<{
-    cuitNit: string,
-    empresaParticipada: string,
-    actividad: string,
-    porcentajeCapital: number,
-    votos: number,
-  }>
-  autoridadesVencimiento: boolean
-  autoridadesSociedad: Array<{
-    nombre: string
-    apellido: string
-    tipoDocumento: string
-    nroDocumento: string
-    tipoOrgano: string
-    tipoCargo: string
-    direccion: string
-    cuit: string
-    inhibiciones: boolean
-    observaciones: string
-    fotosDNI: Array<Archivo>
-  }>
-  sistemaCalidad: Array<{
-    cuit: string,
-    norma: string,
-    direccion: string,
-    fechaOtorgamiento: string
-    fechaExpiracion: string
-    archivos: Array<Archivo>
-  }>
-  propietarios: Array<{
-    titular: string,
-    cuit: string,
-    porcentajeCapital: number
-    montoCapital: number
-    cantidadVotos: number
-    tipoPersoneria: string
-    observaciones: string
-    archivos: Array<Archivo>
-  }>,
-  ejercicios: Array<Ejercicio>,
-  ddjjObras: Array<DDJJObra>,
-  matriculaComerciante: {
-    datos: string,
-    fecha: string,
-    archivo?: Archivo
-  },
-  altaAFIP: {
-    datos: string,
-    fecha: string,
-    archivo?: Archivo
-  },
-  ultimaModificacionMatriculaOActividadesAFIP: {
-    datos: string,
-    fecha: string,
-    archivo?: Archivo
-  },
-  fechaInscripcionMatriculaComerciante: string
-  aplicaDecretoDoscientosDos: boolean
-  datosDecretoDoscientosDos: Array<{
+  type TramiteAlta = {
+    _id?: string,
+    creatorId: Usuario,
+    inscripcionAFIPConstancia: Array<Archivo>
+    revisiones?: Array<RevisionTramite>
+    id: string
+    createdAt?: Date
     razonSocial: string
+    nombreTitular: string
+    apellidoTitular: string
+    esCasadoTitular: boolean
+    nombreConyuge: string
+    apellidoConyuge: string
+    tipoDocumentoConyuge: string
+    documentoConyugue: string
+    personeria: 'PF' | 'SA' | 'SRL' | 'Cooperativa' | 'UTE' | 'PJESP' | 'OFS' | ''
+    tipoEmpresa: []
+    emailInstitucional: string
     cuit: string
-    tipoFuncionario: string
-    tipoVinculo: string
-    observaciones: string
-  }>,
-  poseeIERIC: boolean
-  datosSocietarios: {
-    fechaInscripcion: string,
-    fechaVencimiento: string,
-    archivoAutoridades: Array<Archivo>,
-    cooperativa: {
-      archivoActaConstitutiva: Array<Archivo>
-      inscriptionINAES: {
-        datos: string
-        fecha: string
+    nroLegajo: string
+    asignadoA?: Usuario
+    
+    apoderados: Array<Apoderado>
+    statusObs?: Array<{
+      attribute: string
+      obs: string
+    }>
+    categoria: 'PRE INSCRIPTO' | 'INSCRIPTO' | 'DESACTUALIZADO' | 'INSCRIPTO CON ACTUALIZACION'
+    status: "BORRADOR" | "OBSERVADO" | "VERIFICADO" | "PENDIENTE DE REVISION" | "A SUPERVISAR" | "SUBSANADO" | "PENDIENTE DE APROBACION" 
+    rechazos:Array<{
+      rechazadoPor: Usuario
+      fecha: number
+      motivo: string
+    }>
+    propietario: Usuario
+    certificadoFiscal: Archivo
+    email: string
+    ieric: string
+    vtoIeric: string
+    archivoIERIC: Array<Archivo>
+    domicilioReal: string
+    domicilioLegal: string
+    telefono: string
+    telefonoAlternativo:string
+    constanciaDomicilioLegal: Array<Archivo>
+    registroPublicoDeComercio: string
+    archivoPropietarios:Array<Archivo>
+    archivoPropietarios2:Array<Archivo>
+    igj: string
+    rubroConstruccion: {
+      lugar: string,
+      fecha: string
+      datos: string
+    }
+    inversionesPermanentes: Array<{
+      cuitNit: string,
+      empresaParticipada:string,
+      actividad: string,
+      porcentajeCapital:number,
+      votos:number,
+    }>
+    autoridadesVencimiento: boolean
+    autoridadesSociedad: Array<{
+      nombre: string
+      apellido: string
+      tipoDocumento: string
+      nroDocumento: string
+      tipoOrgano: string
+      tipoCargo: string
+      direccion: string
+      cuit: string
+      inhibiciones: boolean
+      observaciones: string
+      fotosDNI: Array<Archivo>
+    }>
+    sistemaCalidad: Array<{
+      cuit: string,
+      norma: string,
+      direccion: string,
+      fechaOtorgamiento: string
+      fechaExpiracion: string
+      archivos: Array<Archivo>
+    }>
+    propietarios: Array<{
+      titular: string,
+      cuit: string,
+      porcentajeCapital: number
+      montoCapital: number
+      cantidadVotos: number
+      tipoPersoneria: string
+      observaciones: string
+      archivos: Array<Archivo>
+    }>,
+    ejercicios: Array<Ejercicio>,
+    ddjjObras: Array<DDJJObra>,
+    matriculaComerciante: {
+      datos: string,
+      fecha: string,
+      archivo?: Archivo
+    },
+    altaAFIP: {
+      datos: string,
+      fecha: string,
+      archivo?: Archivo
+    },
+    ultimaModificacionMatriculaOActividadesAFIP: {
+      datos: string,
+      fecha: string,
+      archivo?: Archivo
+    },
+    fechaInscripcionMatriculaComerciante: string
+    aplicaDecretoDoscientosDos: boolean
+    datosDecretoDoscientosDos: Array<{
+      razonSocial: string
+      cuit: string
+      tipoFuncionario: string
+      tipoVinculo: string
+      observaciones: string
+    }>,
+    poseeIERIC: boolean
+    datosSocietarios: {
+      fechaInscripcion: string,
+      fechaVencimiento: string,
+      archivoAutoridades: Array<Archivo>,
+      cooperativa : {
+        archivoActaConstitutiva: Array<Archivo>
+        inscriptionINAES: {
+          datos:string
+          fecha:string
+        }
+        modificacionINAES: {
+          datos:string
+          fecha: string
+          archivos: Array<Archivo>
+        }
+        ultimaModifcacionINAES: {
+          datos: string
+          fecha: string
+          archivos: Array<Archivo>
+        }
       }
-      modificacionINAES: {
-        datos: string
-        fecha: string
-        archivos: Array<Archivo>
+      sociedadAnonima: {
+        contrato: {
+          fecha: string
+          archivos: Array<Archivo>
+        }
+        inscripcion: {
+          datos: string
+          fecha: string
+        }
+        modificacion: {
+          datos: string
+          fecha: string
+          archivos: Array<Archivo>
+        }
+        ultimaModificacion : {
+          datos: string
+          fecha: string
+          archivos: Array<Archivo>
+        }
       }
-      ultimaModifcacionINAES: {
-        datos: string
-        fecha: string
-        archivos: Array<Archivo>
+      ute: {
+        archivosContrato: Array<Archivo>
+        inscripcionUTE: {
+          datos:string
+          fecha: string
+        },
+        modificacionUTE: {
+          datos: string
+          fecha:string
+          archivos: Array<Archivo>
+        }
+      }
+      PJESP: {
+        archivosContrato: Array<Archivo>
+        archivoModificacion: Array<Archivo>
+        archivoUltimaModificacion: Array<Archivo>
+        inscripcionConstitutiva: {
+          datos:string
+          fecha: string
+        },
+        inscripcionSucursal: {
+          datos:string
+          fecha: string
+        },
+        modifcicacionObjeto: {
+          datos:string
+          fecha: string
+        },
+        ultimaModificacionInscripcion: {
+          datos:string
+          fecha: string
+        },
+        fechaVencimiento: {
+          fecha: string
+        },
+      }
+      personaFisica: {
+        constanciaInscripcion: Array<Archivo>,
+        constanciaMatriculaComerciante: Array<Archivo>
       }
     }
-    sociedadAnonima: {
-      contrato: {
-        fecha: string
-        archivos: Array<Archivo>
-      }
-      inscripcion: {
-        datos: string
-        fecha: string
-      }
-      modificacion: {
-        datos: string
-        fecha: string
-        archivos: Array<Archivo>
-      }
-      ultimaModificacion: {
-        datos: string
-        fecha: string
-        archivos: Array<Archivo>
-      }
+    aprobacion?:{
+      aprobadoPor: Usuario,
+      aprobadoAt: number
     }
-    ute: {
-      archivosContrato: Array<Archivo>
-      inscripcionUTE: {
-        datos: string
-        fecha: string
-      },
-      modificacionUTE: {
-        datos: string
-        fecha: string
-        archivos: Array<Archivo>
-      }
-    }
-    personaFisica: {
-      constanciaInscripcion: Array<Archivo>,
-      constanciaMatriculaComerciante: Array<Archivo>
-
-    }
+    
   }
-
-}
 
 type ValidatorErrorElement = {
   attribute: string

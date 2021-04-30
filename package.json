@@ -1,6 +1,6 @@
 {
   "name": "rnc-main-lib",
-  "version": "1.0.5",
+  "version": "1.0.7",
   "description": "Librerias helpers para el registro nacional de constructores de la Republica Argentina ",
   "scripts": {
     "build": "tsc",
