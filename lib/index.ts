@@ -159,18 +159,17 @@ export class CalculadoraCapacidad {
   getMontoCertificacionesPorPeriodo() {
     const parseCertificacion = (cert) => {
 
-      // const obra = this._empresa.ddjjObras.filter( o=>  !_.isEmpty(o.certificaciones.filter(c => c.codigo === cert.codigo)))[0]
-
+    
       const tipoContratacion = this._empresa.ddjjObras.filter(o => !_.isEmpty(o.certificaciones.filter(c => c.codigo === cert.codigo)))[0].datosObra[0].tipoContratacion
       const participacionUTE = this._empresa.ddjjObras.filter(o => !_.isEmpty(o.certificaciones.filter(c => c.codigo === cert.codigo)))[0].participacionUTE
 
       let montoCalculado = cert.monto
 
 
+      //console.log(participacionUTE)
 
-      if (participacionUTE) {
+      if (participacionUTE && participacionUTE!=='NO INFORMA') {
         montoCalculado = montoCalculado * (parseFloat(participacionUTE) / 100)
-        //console.log(parseFloat(participacionUTE) / 100)
       }
 
 
@@ -183,11 +182,14 @@ export class CalculadoraCapacidad {
       if (tipoContratacion === 'SubPrivada')
         montoCalculado = montoCalculado * 0.25
 
+      
+
+        
       return {
         id: cert.codigo,
         tipoContratacion,
         participacionUTE,
-        periodo: moment(cert.periodo, 'DD/MM/YYYY').format('MMYYYY'),
+        periodo: moment(cert.periodo, 'DD/MM/YYYY').format('MYYYY'),
         time: moment(cert.periodo, 'DD/MM/YYYY').valueOf(),
         montoBruto: cert.monto,
         monto: montoCalculado
@@ -199,8 +201,16 @@ export class CalculadoraCapacidad {
       .filter(o => moment(this.getUltimoEjercicio().fechaCierre, 'DD/MM/YYYY').toDate().getTime() >= o.time)
 
 
+    console.log(this._empresa.razonSocial)  
+    console.log(moment(this.getUltimoEjercicio().fechaCierre, 'DD/MM/YYYY').format('DD/MM/YYYY'))
+      /*
+   console.log(this._empresa.ddjjObras
+      .reduce((acc, { certificaciones, id, datosObra }) => [...acc, ...certificaciones], [])
+      .map(parseCertificacion)
+      .filter(o => moment(this.getUltimoEjercicio().fechaCierre, 'DD/MM/YYYY').toDate().getTime() < o.time))*/
 
-    //console.log(listCruda)
+
+    
     const list = []
     for (let e of this._empresa.ejercicios.filter(ej => moment().diff(moment(ej.fechaCierre, 'DD/MM/YYYY'), 'years') <= 10)) {
       const montoAccumulado = listCruda.filter(cert => cert.time >= moment(e.fechaInicio, 'DD/MM/YYYY').valueOf() && cert.time <= moment(e.fechaCierre, 'DD/MM/YYYY').valueOf())
@@ -209,7 +219,7 @@ export class CalculadoraCapacidad {
       //console.log(listCruda.filter( cert => cert.time >= moment(e.fechaInicio,'DD/MM/YYYY').valueOf() && cert.time <=  moment(e.fechaCierre,'DD/MM/YYYY').valueOf()))
 
       list.push({
-        periodo: moment(e.fechaCierre, 'DD/MM/YYYY').format('MMYYYY'),
+        periodo: moment(e.fechaCierre, 'DD/MM/YYYY').format('MYYYY'),
         time: moment(e.fechaCierre, 'DD/MM/YYYY').valueOf(),
         monto: montoAccumulado
       })
@@ -252,6 +262,7 @@ export class CalculadoraCapacidad {
   }
 
   tomarLosTresPrimerosElementos() {
+ 
     this.value = this.value.slice(0, 3)
     this.evidencia.tresMejoresPeriodos = this.value
     return this
@@ -422,7 +433,7 @@ export class CalculadoraCapacidad {
 
     let montoCalculado =  (saldoObra / montoVigente) * plazoTotalMeses > 12  ? (saldoObra / ((saldoObra / montoVigente) * plazoTotalMeses)) * 12 : saldoObra
     
-    if (obra.participacionUTE) {
+    if (obra.participacionUTE && obra.participacionUTE!=='NO INFORMA') {
       montoCalculado = montoCalculado * (parseFloat(obra.participacionUTE) / 100)
       //console.log(parseFloat(participacionUTE) / 100)
     }
