@@ -429,7 +429,7 @@ export class CalculadoraCapacidad {
 
 
     const montoVigente  = obra.montoInicial + sumaAmpliaciones + sumaRedeterminaciones
-    const plazoTotalMeses = obra.plazoPorContrato + obra.prorrogaNueva.reduce( (acc,val) => acc+=val.prorrogaMeses,0)
+    const plazoTotalMeses =obra.prorrogaNueva ?  obra.plazoPorContrato + obra.prorrogaNueva.reduce( (acc,val) => acc+=val.prorrogaMeses,0) : obra.plazoPorContrato
 
     let montoCalculado =  (saldoObra / montoVigente) * plazoTotalMeses > 12  ? (saldoObra / ((saldoObra / montoVigente) * plazoTotalMeses)) * 12 : saldoObra
     
